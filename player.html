@@ -1,0 +1,555 @@
+<!DOCTYPE HTML>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+		<title>HTML5 Audio Player with Playlist by Tean</title>
+        
+        <link rel="stylesheet" type="text/css" href="css/flashblock.css" />
+		<link rel="stylesheet" type="text/css" href="css/jquery.jscrollpane.css" media="all" />
+		<link rel="stylesheet" type="text/css" href="css/html5audio8.css" />
+        
+        <script type="text/javascript" src="js/jquery-1.9.0.min.js"></script>
+        <!--[if lt IE 9]>
+            <script type="text/javascript" src="js/jquery-1.8.1.min.js"></script>
+        <![endif]-->
+        <script type="text/javascript" src="js/jquery.mousewheel.min.js"></script>
+        <script type="text/javascript" src="js/jquery.jscrollpane.min.js"></script>
+        <script type="text/javascript" src="js/soundmanager2-nodebug-jsmin.js" ></script>
+		<script type="text/javascript" src="js/jquery.html5audio.min.js"></script>
+        <script type="text/javascript" src="js/jquery.apPlaylistManager.min.js"></script>
+        <script type="text/javascript" src="js/jquery.apTextScroller.min.js"></script>
+        <script type="text/javascript">
+			
+			/* CALLBACKS */
+			
+			function audioPlayerSetupDone(sound_id){
+				/* called when component is ready to receive public function calls. Returns current player instance sound id */
+				//console.log('audioPlayerSetupDone: ', sound_id);
+			}
+			function audioPlayerPlaylistLoaded(sound_id){
+				/* called when playlist is loaded. Returns current player instance sound id */
+				//console.log('audioPlayerPlaylistLoaded: ', sound_id);
+			}
+			function audioPlayerPlaylistEnd(sound_id){
+				/* called when current playlists reaches end. Returns current player instance sound id. */
+				//console.log('audioPlayerPlaylistEnd: ', sound_id);
+			} 
+			function audioPlayerSoundEnd(counter){
+				/* called when current playing sound ends. Returns current audio counter starting from zero */
+				//console.log('audioPlayerSoundEnd: ', counter);
+			}
+			function audioPlayerSoundStart(counter){
+				/* called when current playing sound starts. Returns current audio counter starting from zero */
+				//console.log('audioPlayerSoundStart: ', counter);
+			}
+			function audioPlayerSoundPlay(sound_id){
+				/* called when sound is played. Returns current playing sound id */
+				/*var soundArr = [{player_id: player1, sound_id: 'sound_id1'},{player_id: player2, sound_id: 'sound_id2'}];//list of players and related sound_ids
+				var i = 0, len = soundArr.length;
+				for(i;i<len;i++){
+					//console.log('audioPlayerSoundPlay: ', sound_id, soundArr[i].sound_id);
+					if(sound_id != soundArr[i].sound_id)soundArr[i].player_id.checkAudio('pause');//send action parameter for other playing sounds (pause/stop)
+				}*/
+			}
+			function audioPlayerSoundPause(sound_id){
+				/* called when sound is paused. Returns current playing sound id */
+				//console.log('audioPlayerSoundPause: ', sound_id);
+			}
+			function itemTriggered(counter){
+				/* called when new sound is triggered. Returns current audio counter starting from zero */
+				//console.log('itemTriggered: ', counter);
+			}
+			
+			// SETTINGS
+			
+			var ap_settings = {
+				/* playerHolder: dom elements which holds the whole player */
+				playerHolder: '#componentWrapper',
+				/* playlistHolder: dom elements which holds list of playlists */
+				playlistHolder: '#playlist_list',
+				/* activePlaylist: set active playlist that will be loaded on beginning. 
+				Leave empty for none like this: activePlaylist: '' */
+				activePlaylist: '#playlist2',
+				/* activeItem: active item to start with when playlist is loaded (0 = first, 1 = second, 2 = third... -1 = none) */
+				activeItem: 0,
+				/* sound_id: unique string for soundmanager sound id (if multiple player instances were used, then strings need to be different) */
+				sound_id: 'sound_id1',
+				
+				/* soundcloudApiKey: If you want to use SoundCloud music, register you own api key here for free: 
+				'http://soundcloud.com/you/apps/new' and enter Client ID */
+				soundcloudApiKey: '6d5131010ae3b3953fc7d881c38bc555',
+
+				/*defaultVolume: 0-1 (Irrelevant on ios mobile) */
+				defaultVolume:0.5,
+				/*autoPlay: true/false (false on mobile by default) */
+				autoPlay:true,
+				/*autoLoad: true/false (auto start sound load) */
+				autoLoad:true,
+				/*randomPlay: true/false */
+				randomPlay:false,
+				/*loopingOn: true/false (loop on the end of the playlist) */
+				loopingOn:true,
+				
+				/* useNumbersInPlaylist: true/false. Prepend numbers in playlist items. */
+				useNumbersInPlaylist: true,
+				
+				/* autoSetSongTitle: true/false. Auto set song title in 'player_mediaName'. */
+				autoSetSongTitle: true,
+				
+				/* useSongNameScroll: true/false. Use song name scrolling. */
+				useSongNameScroll: true,
+				/* scrollSpeed: speed of the scroll (number higher than zero). */
+				scrollSpeed: 1,
+				/* scrollSeparator: String to append between scrolling song name. */
+				scrollSeparator: '&nbsp;&#42;&#42;&#42;&nbsp;',
+				
+				/* mediaTimeSeparator: String between current and total song time. */
+				mediaTimeSeparator: '&nbsp;-&nbsp;',
+				/* seekTooltipSeparator: String between current and total song position, for progress tooltip. */
+				seekTooltipSeparator: '&nbsp;/&nbsp;',
+				
+				/* buttonsUrl: url of the buttons for normal and rollover state */
+				buttonsUrl: {prev: 'media/data/icons/set3/prev.png', prevOn: 'media/data/icons/set3/prev_on.png', 
+						  	 next: 'media/data/icons/set3/next.png', nextOn: 'media/data/icons/set3/next_on.png', 
+						 	 pause: 'media/data/icons/set3/pause.png', pauseOn: 'media/data/icons/set3/pause_on.png',
+						 	 play: 'media/data/icons/set3/play.png', playOn: 'media/data/icons/set3/play_on.png',
+						 	 volume: 'media/data/icons/set3/volume.png', volumeOn: 'media/data/icons/set3/volume_on.png', 
+							 mute: 'media/data/icons/set3/mute.png', muteOn: 'media/data/icons/set3/mute_on.png', 
+						  	 loop: 'media/data/icons/set3/loop.png', loopOn: 'media/data/icons/set3/loop_on.png',
+						  	 shuffle: 'media/data/icons/set3/shuffle.png', shuffleOn: 'media/data/icons/set3/shuffle_on.png'},
+				/* useAlertMessaging: Alert error messages to user (true / false). */
+				useAlertMessaging: true,
+				
+				/* ativatePlaylistScroll: true/false. activate jScrollPane. */
+				ativatePlaylistScroll: true
+			};
+			
+			//sound manager settings (http://www.schillmania.com/projects/soundmanager2/)
+			soundManager.setup({
+				url: 'swf/', // path to SoundManager2 SWF files
+				allowScriptAccess: 'always', 
+				debugMode: false,
+				noSWFCache: true,
+				useConsole: false,
+				waitForWindowLoad: true,
+			    flashVersion: 9,
+				useFlashBlock: true,
+			    preferFlash: false,
+				useHTML5Audio: true
+			});
+			
+			var audio = document.createElement('audio'), mp3Support, oggSupport;
+			if (audio.canPlayType) {
+			 	//mp3Support = !!audio.canPlayType && "" != audio.canPlayType('audio/mpeg');
+			    mp3Support=true;
+			    oggSupport = !!audio.canPlayType && "" != audio.canPlayType('audio/ogg; codecs="vorbis"');
+			}else{
+				//for IE<9
+				mp3Support = true;
+				oggSupport = false;
+			}
+			//console.log('mp3Support = ', mp3Support, ' , oggSupport = ', oggSupport);
+			
+			/*
+			FF - false, true
+			OP - false, true
+			
+			IE9 - true, false 
+			SF - true, false 
+			
+			CH - true, true
+			*/
+		
+		    soundManager.audioFormats = {
+			  'mp3': {
+				'type': ['audio/mpeg; codecs="mp3"', 'audio/mpeg', 'audio/mp3', 'audio/MPA', 'audio/mpa-robust'],
+				'required': mp3Support
+			  },
+			  'mp4': {
+				'related': ['aac','m4a'],
+				'type': ['audio/mp4; codecs="mp4a.40.2"', 'audio/aac', 'audio/x-m4a', 'audio/MP4A-LATM', 'audio/mpeg4-generic'],
+				'required': false
+			  },
+			  'ogg': {
+				'type': ['audio/ogg; codecs=vorbis'],
+				'required': oggSupport
+			  },
+			  'wav': {
+				'type': ['audio/wav; codecs="1"', 'audio/wav', 'audio/wave', 'audio/x-wav'],
+				'required': false
+			  }
+			};
+			
+			//player instances
+			var player1;  
+			
+			//list of tracks to insert into playlist
+			var trackList = ["<li class='playlistItem' data-type='local' data-mp3Path='media/audio/2/Soundroll_-_Funky_Boom.mp3' data-oggPath='media/audio/2/Soundroll_-_Funky_Boom.ogg'><a class='playlistNonSelected' href='#'>Soundroll - Funky Boom</a></li>",
+			 
+                "<li class= 'playlistItem' data-type='local' data-mp3Path='media/audio/2/Soundroll_-_Fight_No_More.mp3' data-oggPath='media/audio/2/Soundroll_-_Fight_No_More.ogg'><a class='playlistNonSelected' href='#'>Soundroll - Fight No More</a></li>",
+                
+                "<li class= 'playlistItem' data-type='local' data-mp3Path='media/audio/2/Soundroll_-_Rush.mp3' data-oggPath='media/audio/2/Soundroll_-_Rush.ogg'><a class='playlistNonSelected' href='#'>Soundroll - Rush</a></li>", 
+				
+				"<li class= 'playlistItem' data-type='local' data-mp3Path='media/audio/2/Soundroll_-_Pump_The_Club.mp3' 	data-oggPath='media/audio/2/Soundroll_-_Pump_The_Club.ogg'><a class='playlistNonSelected' href='#'>Soundroll - Pump The Club</a></li>", 
+				
+				"<li class= 'playlistItem' data-type='local' data-mp3Path='media/audio/2/Soundroll_-_A_Way_To_The_Top.mp3'  data-oggPath='media/audio/2/Soundroll_-_A_Way_To_The_Top.ogg'><a class='playlistNonSelected' href='#'>Soundroll - A Way To The Top</a></li>", 
+				
+				"<li class= 'playlistItem' data-type='local' data-mp3Path='media/audio/2/Soundroll_-_Sun_Is_So_Bright.mp3'  data-oggPath='media/audio/2/Soundroll_-_Sun_Is_So_Bright.ogg'><a class='playlistNonSelected' href='#'>Soundroll - Sun Is So Bright</a></li>"];
+				
+			var trackList_1 = ["<li class= 'playlistItem' data-type='local' data-mp3Path='media/audio/1/Tim_McMorris_-_A_Bright_And_Hopeful_Future.mp3' 		 data-oggPath='media/audio/1/Tim_McMorris_-_A_Bright_And_Hopeful_Future.ogg'><a class='playlistNonSelected' href='#'>Tim McMorris - A Bright And Hopeful Future</a></li>",
+                "<li class= 'playlistItem' data-type='local' data-mp3Path='media/audio/1/Tim_McMorris_-_Be_My_Valentine.mp3' 					 data-oggPath='media/audio/1/Tim_McMorris_-_Be_My_Valentine.ogg'><a class='playlistNonSelected' href='#'>Tim McMorris - Be My Valentine</a><a class='hlink' href='http://www.google.com' target='_blank'><img src='media/data/link.png' width='10' height='10' alt = ''/></a></li>",
+                
+                "<li class= 'playlistItem' data-type='local' data-mp3Path='media/audio/1/Tim_McMorris_-_Give_Our_Dreams_Their_Wings_To_Fly.mp3'  data-oggPath='media/audio/1/Tim_McMorris_-_Give_Our_Dreams_Their_Wings_To_Fly.ogg'><a class='playlistNonSelected' href='#'>Tim McMorris - Give Our Dreams Their Wings To Fly</a></li>"];
+				
+			//list of tracks 2
+			var trackList2 = [{mp3: 'media/audio/2/Soundroll_-_Funky_Boom.mp3', ogg: 'media/audio/2/Soundroll_-_Funky_Boom.ogg', title: 'Soundroll - Funky Boom'}, {mp3: 'media/audio/2/Soundroll_-_Fight_No_More.mp3', ogg: 'media/audio/2/Soundroll_-_Fight_No_More.ogg', title: 'Soundroll - Fight No More'}, {mp3: 'media/audio/2/Soundroll_-_Rush.mp3', ogg:'media/audio/2/Soundroll_-_Rush.ogg', title: 'Soundroll - Rush'}];
+
+			//list of tracks 3
+			var trackList3 = [{mp3: 'media/audio/1/Tim_McMorris_-_A_Bright_And_Hopeful_Future.mp3', ogg: 'media/audio/1/Tim_McMorris_-_A_Bright_And_Hopeful_Future.ogg', title: 'Tim McMorris - A Bright And Hopeful Future'}, {mp3: 'media/audio/1/Tim_McMorris_-_Be_My_Valentine.mp3', ogg: 'media/audio/1/Tim_McMorris_-_Be_My_Valentine.ogg', title: 'Tim McMorris - Be My Valentine'}];
+				
+			//list of titles to insert into player_mediaName
+			var titleList = ['Tim McMorris - A Bright And Hopeful Future', 'Tim McMorris - Be My Valentine', 'Tim McMorris - Give Our Dreams Their Wings To Fly', 'Tim McMorris - Happy Days Are Here To Stay', 'Tim McMorris - Health Happiness Success', 'Tim McMorris - Marketing Advertising Music', 'Tim McMorris - Successful Business Venture'];
+			
+			jQuery(document).ready(function($) {
+				//init component
+				
+				player1 = $('#componentWrapper').html5audio(ap_settings);
+				ap_settings = null;
+				
+    	    });
+		
+        </script>
+        
+	</head>
+	<body>
+    
+   		 <div id='playlistSelector'>
+       		<p>PLAYLIST SELECTOR</p><br/>
+            <ul>
+                <!-- load new playlist (pass element id) -->
+                <li><a href='#' onClick="player1.loadPlaylist('#playlist1'); return false;">Load local playlist 1</a></li>
+                <li><a href='#' onClick="player1.loadPlaylist('#playlist2'); return false;">Load local playlist 2</a></li>
+                
+                <!-- load new playlist (pass element id) -->
+                <li><a href='#' onClick="player1.loadPlaylist('#playlist3'); return false;">Load podcast playlist 1</a></li>
+                <li><a href='#' onClick="player1.loadPlaylist('#playlist4'); return false;">Load podcast playlist 2</a></li>
+                <li><a href='#' onClick="player1.loadPlaylist('#playlist5'); return false;">Load podcast playlist 3</a></li>
+                <li><a href='#' onClick="player1.loadPlaylist('#playlist6'); return false;">Load podcast playlist 4</a></li>
+                <li><a href='#' onClick="player1.loadPlaylist('#playlist7'); return false;">Load podcast playlist 5</a></li>
+                
+                <!-- load new playlist (pass element id) -->
+                <li><a href='#' onClick="player1.loadPlaylist('#playlist8'); return false;">Load soundcloud track set</a></li>
+                <li><a href='#' onClick="player1.loadPlaylist('#playlist9'); return false;">Load soundcloud user tracks</a></li>
+                <li><a href='#' onClick="player1.loadPlaylist('#playlist10'); return false;">Load soundcloud single track</a></li>
+                <li><a href='#' onClick="player1.loadPlaylist('#playlist11'); return false;">Load soundcloud user favourites</a></li>
+            </ul>
+        </div>
+    
+        <!-- first instance -->
+    	<div id="componentWrapper">
+        
+             <div class="playerHolder">
+                 
+                  <div class="player_controls">
+                  	  <!-- previous -->
+                      <div class="controls_prev"><img src='media/data/icons/set3/prev.png' width='26' height='27' alt='controls_prev'/></div>
+                      <!-- pause/play -->
+                      <div class="controls_toggle"><img src='media/data/icons/set3/play.png' width='40' height='41' alt='controls_toggle'/></div>
+                      <!-- next -->
+                      <div class="controls_next"><img src='media/data/icons/set3/next.png' width='26' height='27' alt='controls_next'/></div>
+
+                  </div>
+                  
+                  <!-- progress -->
+                  <div class="player_progress">
+                      <div class="progress_bg"></div>
+                      <div class="load_progress"></div>
+                      <div class="play_progress"></div>
+                  </div>
+                  
+                  <!-- progress tooltip -->
+                  <div class="player_progress_tooltip"><p>0:00&nbsp;/&nbsp;0:00</p></div>
+             
+             </div>
+              
+             <div class="playlistHolder">
+                 <div class="componentPlaylist">
+                     <div class="playlist_inner">
+                     	<!-- playlist items are appended here! --> 
+                     </div>
+                 </div>
+                 <!-- preloader --> 
+                 <div class="preloader"></div>
+             </div>
+        </div>
+        
+        <!-- List of playlists -->
+        <div id="playlist_list">
+                     
+             <!-- local playlist -->
+             <ul id='playlist1'>
+                 <li class= "playlistItem" data-type='local' data-mp3Path="media/audio/1/Tim_McMorris_-_A_Bright_And_Hopeful_Future.mp3" 		 data-oggPath="media/audio/1/Tim_McMorris_-_A_Bright_And_Hopeful_Future.ogg"><a class="playlistNonSelected" href='#'>Tim McMorris - A Bright And Hopeful Future</a></li>
+                 <li class= "playlistItem" data-type='local' data-mp3Path="media/audio/1/Tim_McMorris_-_Be_My_Valentine.mp3" 					 data-oggPath="media/audio/1/Tim_McMorris_-_Be_My_Valentine.ogg"><a class="playlistNonSelected" href='#'>Tim McMorris - Be My Valentine</a><a class="hlink" href='http://www.google.com' target='_blank'><img src='media/data/link.png' width='10' height='10' alt = ''/></a></li>
+                 <li class= "playlistItem" data-type='local' data-mp3Path="media/audio/1/Tim_McMorris_-_Give_Our_Dreams_Their_Wings_To_Fly.mp3"  data-oggPath="media/audio/1/Tim_McMorris_-_Give_Our_Dreams_Their_Wings_To_Fly.ogg"><a class="playlistNonSelected" href='#'>Tim McMorris - Give Our Dreams Their Wings To Fly</a></li>
+                 <li class= "playlistItem" data-type='local' data-mp3Path="media/audio/1/Tim_McMorris_-_Happy_Days_Are_Here_To_Stay.mp3" 		 data-oggPath="media/audio/1/Tim_McMorris_-_Happy_Days_Are_Here_To_Stay.ogg"><a class="playlistNonSelected" href='#'>Tim McMorris - Happy Days Are Here To Stay</a><a class="hlink" href='http://www.greensock.com' target='_blank'><img src='media/data/link.png' width='10' height='10' alt = ''/></a></li>
+                 <li class= "playlistItem" data-type='local' data-mp3Path="media/audio/1/Tim_McMorris_-_Health_Happiness_Success.mp3" 			 data-oggPath="media/audio/1/Tim_McMorris_-_Health_Happiness_Success.ogg"><a class="playlistNonSelected" href='#'>Tim McMorris - Health Happiness Success</a><a class="hlink" href='http://codecanyon.net/user/Tean/portfolio' target='_blank'><img src='media/data/link.png' width='10' height='10' alt = ''/></a></li>
+                 <li class= "playlistItem" data-type='local' data-mp3Path="media/audio/1/Tim_McMorris_-_Marketing_Advertising_Music.mp3" 		 data-oggPath="media/audio/1/Tim_McMorris_-_Marketing_Advertising_Music.ogg"><a class="playlistNonSelected" href='#'>Tim McMorris - Marketing Advertising Music</a></li>
+                 <li class= "playlistItem" data-type='local' data-mp3Path="media/audio/1/Tim_McMorris_-_Successful_Business_Venture.mp3" 		 data-oggPath="media/audio/1/Tim_McMorris_-_Successful_Business_Venture.ogg"><a class="playlistNonSelected" href='#'>Tim McMorris - Successful Business Venture</a></li>
+             </ul>
+             
+             <ul id='playlist2'>
+                 <li class= "playlistItem" data-type='local' data-mp3Path="media/audio/2/Soundroll_-_A_Way_To_The_Top.mp3"  data-oggPath="media/audio/2/Soundroll_-_A_Way_To_The_Top.ogg"><a class="playlistNonSelected" href='#'>Soundroll - A Way To The Top</a><a class="hlink" href='http://codecanyon.net/user/Tean/portfolio' target='_blank'><img src='media/data/link.png' width='10' height='10' alt = ''/></a></li>
+                 <li class= "playlistItem" data-type='local' data-mp3Path="media/audio/2/Soundroll_-_Feel_Good_Journey.mp3" data-oggPath="media/audio/2/Soundroll_-_Feel_Good_Journey.ogg"><a class="playlistNonSelected" href='#'>Soundroll - Feel Good Journey</a></li>
+                 <li class= "playlistItem" data-type='local' data-mp3Path="media/audio/2/Soundroll_-_Fight_No_More.mp3" 	data-oggPath="media/audio/2/Soundroll_-_Fight_No_More.ogg"><a class="playlistNonSelected" href='#'>Soundroll - Fight No More</a><a class="hlink" href='http://www.google.com' target='_blank'><img src='media/data/link.png' width='10' height='10' alt = ''/></a></li>
+                 <li class= "playlistItem" data-type='local' data-mp3Path="media/audio/2/Soundroll_-_Funky_Boom.mp3" 		data-oggPath="media/audio/2/Soundroll_-_Funky_Boom.ogg"><a class="playlistNonSelected" href='#'>Soundroll - Funky Boom</a><a class="hlink" href='http://codecanyon.net/user/Tean/portfolio' target='_blank'><img src='media/data/link.png' width='10' height='10' alt = ''/></a></li>
+                 <li class= "playlistItem" data-type='local' data-mp3Path="media/audio/2/Soundroll_-_Pump_The_Club.mp3" 	data-oggPath="media/audio/2/Soundroll_-_Pump_The_Club.ogg"><a class="playlistNonSelected" href='#'>Soundroll - Pump The Club</a></li>
+                 <li class= "playlistItem" data-type='local' data-mp3Path="media/audio/2/Soundroll_-_Rush.mp3" 				data-oggPath="media/audio/2/Soundroll_-_Rush.ogg"><a class="playlistNonSelected" href='#'>Soundroll - Rush</a></li>
+                 <li class= "playlistItem" data-type='local' data-mp3Path="media/audio/2/Soundroll_-_Sun_Is_So_Bright.mp3"  data-oggPath="media/audio/2/Soundroll_-_Sun_Is_So_Bright.ogg"><a class="playlistNonSelected" href='#'>Soundroll - Sun Is So Bright</a></li>
+             </ul>
+             
+             <!-- podcast playlists -->
+             <ul id='playlist3'>
+                 <li class= "playlistItem" data-type='podcast' data-path='http://gidilounge.fm/?feed=podcast'/>
+             </ul>
+             <ul id='playlist4'>
+                 <li class= "playlistItem" data-type='podcast' data-path='http://www.kingola.com/feed/podcast/'/>
+             </ul>
+             <ul id='playlist5'>
+                 <li class= "playlistItem" data-type='podcast' data-path='http://www.npr.org/rss/podcast.php?id=510008'/>
+             </ul>
+             <ul id='playlist6'>
+                 <li class= "playlistItem" data-type='podcast' data-path='http://feeds.feedburner.com/xpnmusicnotes/'/>
+             </ul>
+             <ul id='playlist7'>
+                 <li class= "playlistItem" data-type='podcast' data-path='http://robertkelly.libsyn.com/rss'/>
+             </ul>
+                    
+             <!-- Soundcloud playlists -->
+             <!-- track set -->
+             <ul id='playlist8'>
+                <li class= "playlistItem" data-type='soundcloud' data-path='http://soundcloud.com/trance/sets/magix-revolta-2/'/>
+             </ul>
+             <!-- user tracks -->
+             <ul id='playlist9'>
+                <li class= "playlistItem" data-type='soundcloud' data-path='http://soundcloud.com/computer-magic'/>
+             </ul>
+             <!-- single track -->
+             <ul id='playlist10'>
+                <li class= "playlistItem" data-type='soundcloud' data-path='http://soundcloud.com/trance/trance-single-138-bpm-anvil'/>
+             </ul>
+             <!-- user favorites -->
+             <ul id='playlist11'>
+                <li class= "playlistItem" data-type='soundcloud' data-path='http://soundcloud.com/mixessss/favorites'/>
+             </ul>
+             
+             <!-- read songs automatically from folder -->
+             <ul id='playlist12'>
+                <li class= "playlistItem" data-type='folder' data-path='media/audio/1/'/>
+             </ul>
+             <ul id='playlist13'>
+                <li class= "playlistItem" data-type='folder' data-path='media/audio/2/'/>
+             </ul>
+             
+             <!-- xml playlist -->
+             <ul id='playlist14'>
+                <li class= "playlistItem" data-type='xml' data-path='xml/playlist1.xml'/>
+             </ul>
+             <ul id='playlist15'>
+                <li class= "playlistItem" data-type='xml' data-path='xml/playlist2.xml'/>
+             </ul>
+             
+             
+             <!-- MIXED EXAMPLES -->
+             <ul id='playlist16'>
+                 <li class= "playlistItem" data-type='local' data-mp3Path="media/audio/1/Tim_McMorris_-_A_Bright_And_Hopeful_Future.mp3" 		 data-oggPath="media/audio/1/Tim_McMorris_-_A_Bright_And_Hopeful_Future.ogg"><a class="playlistNonSelected" href='#'>Tim McMorris - A Bright And Hopeful Future</a></li>
+                 <li class= "playlistItem" data-type='local' data-mp3Path="media/audio/1/Tim_McMorris_-_Be_My_Valentine.mp3" 					 data-oggPath="media/audio/1/Tim_McMorris_-_Be_My_Valentine.ogg"><a class="playlistNonSelected" href='#'>Tim McMorris - Be My Valentine</a><a class="hlink" href='http://www.google.com' target='_blank'><img src='media/data/link.png' width='10' height='10' alt = ''/></a></li>
+                 <li class= "playlistItem" data-type='local' data-mp3Path="media/audio/1/Tim_McMorris_-_Give_Our_Dreams_Their_Wings_To_Fly.mp3"  data-oggPath="media/audio/1/Tim_McMorris_-_Give_Our_Dreams_Their_Wings_To_Fly.ogg"><a class="playlistNonSelected" href='#'>Tim McMorris - Give Our Dreams Their Wings To Fly</a></li>
+                 <li class= "playlistItem" data-type='local' data-mp3Path="media/audio/1/Tim_McMorris_-_Happy_Days_Are_Here_To_Stay.mp3" 		 data-oggPath="media/audio/1/Tim_McMorris_-_Happy_Days_Are_Here_To_Stay.ogg"><a class="playlistNonSelected" href='#'>Tim McMorris - Happy Days Are Here To Stay</a><a class="hlink" href='http://www.greensock.com' target='_blank'><img src='media/data/link.png' width='10' height='10' alt = ''/></a></li>
+
+                 <li class= "playlistItem" data-type='soundcloud' data-path='http://soundcloud.com/mixessss/favorites'/>
+                
+                 <li class= "playlistItem" data-type='xml' data-path='xml/playlist3.xml'/>
+             </ul>
+             
+             <ul id='playlist17'>
+                <li class= "playlistItem" data-type='local' data-mp3Path="media/audio/2/Soundroll_-_Rush.mp3" data-oggPath="media/audio/2/Soundroll_-_Rush.ogg"><a class="playlistNonSelected" href='#'>Soundroll - Rush</a></li>
+
+                <li class= "playlistItem" data-type='podcast' data-path='http://www.npr.org/rss/podcast.php?id=510008'/>
+                
+                <li class= "playlistItem" data-type='soundcloud' data-path='http://soundcloud.com/trance/trance-single-138-bpm-anvil'/>
+                
+                <li class= "playlistItem" data-type='xml' data-path='xml/playlist2.xml'/>
+                
+                <li class= "playlistItem" data-type='folder' data-path='media/audio/1/'/>
+             </ul>
+             
+             <ul id='playlist18'>
+                <li class= "playlistItem" data-type='folder' data-path='media/audio/1/'/> 
+                <li class= "playlistItem" data-type='folder' data-path='media/audio/2/'/>
+             </ul>
+
+         </div>
+        
+   		<!-- public function calls -->
+    	<div id='publicFunctions'>
+       		<p>PUBLIC API</p><br/>
+            <ul>
+                <!-- play active media -->
+                <li><a href='#' onClick="player1.playAudio(); return false;">Play current media</a></li>
+                
+                <!-- pause active media -->
+                <li><a href='#' onClick="player1.pauseAudio(); return false;">Pause current media</a></li>
+                
+                <!-- toggle active media -->
+                <li><a href='#' onClick="player1.toggleAudio(); return false;">Toggle current media</a></li>
+                
+                <!-- stop active media -->
+                <li><a href='#' onClick="player1.stopAudio(); return false;">Stop current media</a></li>
+                
+                <!-- play next media -->
+                <li><a href='#' onClick="player1.nextAudio(); return false;">Play next</a></li>
+                
+                <!-- play previous media -->
+                <li><a href='#' onClick="player1.previousAudio(); return false;">Play previous</a></li>
+                
+                <!-- play media (pass media number, counting starts from zero, or media title as string to load) -->
+                <li><a href='#' onClick="player1.loadAudio(0); return false;">Play media number 0</a></li>
+                <li><a href='#' onClick="player1.loadAudio(1); return false;">Play media number 1</a></li>
+                <li><a href='#' onClick="player1.loadAudio(2); return false;">Play media number 2</a></li>
+                
+                <li><a href='#' onClick="player1.loadAudio('Tim McMorris - A Bright And Hopeful Future'); return false;">Play media with name 1</a></li>
+                <li><a href='#' onClick="player1.loadAudio('Tim McMorris - Health Happiness Success'); return false;">Play media with name 2</a></li>
+                
+                <!-- METHODS RELATED TO PHYSICAL PLAYLIST -->
+                
+                <!-- load new playlist (pass element 'id' from the dom)-->
+                <li><a href='#' onClick="player1.loadPlaylist('#playlist1'); return false;">Load local playlist 1</a></li>
+                <li><a href='#' onClick="player1.loadPlaylist('#playlist2'); return false;">Load local playlist 2</a></li>
+              
+                <li><a href='#' onClick="player1.loadPlaylist('#playlist3'); return false;">Load podcast playlist 1</a></li>
+                <li><a href='#' onClick="player1.loadPlaylist('#playlist4'); return false;">Load podcast playlist 2</a></li>
+                <li><a href='#' onClick="player1.loadPlaylist('#playlist5'); return false;">Load podcast playlist 3</a></li>
+                <li><a href='#' onClick="player1.loadPlaylist('#playlist6'); return false;">Load podcast playlist 4</a></li>
+                <li><a href='#' onClick="player1.loadPlaylist('#playlist7'); return false;">Load podcast playlist 5</a></li>
+                
+                <li><a href='#' onClick="player1.loadPlaylist('#playlist8'); return false;">Load soundcloud playlist 1</a></li>
+                <li><a href='#' onClick="player1.loadPlaylist('#playlist9'); return false;">Load soundcloud playlist 2</a></li>
+                <li><a href='#' onClick="player1.loadPlaylist('#playlist10'); return false;">Load soundcloud playlist 3</a></li>
+                <li><a href='#' onClick="player1.loadPlaylist('#playlist11'); return false;">Load soundcloud playlist 4</a></li>
+                
+                <li><a href='#' onClick="player1.loadPlaylist('#playlist12'); return false;">Load folder playlist 1</a></li>
+                <li><a href='#' onClick="player1.loadPlaylist('#playlist13'); return false;">Load folder playlist 2</a></li>
+                
+                <li><a href='#' onClick="player1.loadPlaylist('#playlist14'); return false;">Load xml playlist 1</a></li>
+                <li><a href='#' onClick="player1.loadPlaylist('#playlist15'); return false;">Load xml playlist 2</a></li>
+                
+                <li><a href='#' onClick="player1.loadPlaylist('#playlist16'); return false;">Load mixed playlist 1</a></li>
+                <li><a href='#' onClick="player1.loadPlaylist('#playlist17'); return false;">Load mixed playlist 2</a></li>
+                <li><a href='#' onClick="player1.loadPlaylist('#playlist18'); return false;">Load mixed playlist 3</a></li> 
+                
+                <!-- add track (
+                    param1: pass track or array of tracks as string, in the same format as you would in html or xml, ONLY type local supported!
+                    param2: position to insert track(s) (number, counting starts from 0), leave out parameter for the end) -->
+                <li><a href='#' onClick="player1.addTrack(trackList[0], 0); return false;">Add track 0, position 0</a></li>
+                <li><a href='#' onClick="player1.addTrack(trackList[1], 1); return false;">Add track 1, position 1</a></li>
+                <li><a href='#' onClick="player1.addTrack(trackList[2], 2); return false;">Add track 2, position 2</a></li>
+                <li><a href='#' onClick="player1.addTrack(trackList[3], 3); return false;">Add track 3, position 3</a></li>
+                <li><a href='#' onClick="player1.addTrack(trackList[4]); return false;">Add track 4, at pos end</a></li>
+                
+                <li><a href='#' onClick="player1.addTrack(trackList_1[0], 0); return false;">Add track 0, position 0</a></li>
+                <li><a href='#' onClick="player1.addTrack(trackList_1[1], 1); return false;">Add track 1, position 1</a></li>
+                <li><a href='#' onClick="player1.addTrack(trackList_1[2], 2); return false;">Add track 2, position 2</a></li>
+                <li><a href='#' onClick="player1.addTrack(trackList_1[0]); return false;">Add track 0, at pos end</a></li>
+                
+                <li><a href='#' onClick="player1.addTrack(trackList, 0); return false;">Add tracks, position 0</a></li>
+                <li><a href='#' onClick="player1.addTrack(trackList, 1); return false;">Add tracks, position 1</a></li>
+                <li><a href='#' onClick="player1.addTrack(trackList, 2); return false;">Add tracks, position 2</a></li>
+                <li><a href='#' onClick="player1.addTrack(trackList); return false;">Add tracks, position end</a></li>
+                
+                <li><a href='#' onClick="player1.addTrack(trackList_1, 0); return false;">Add tracks 2, position 0</a></li>
+                <li><a href='#' onClick="player1.addTrack(trackList_1, 1); return false;">Add tracks 2, position 1</a></li>
+                <li><a href='#' onClick="player1.addTrack(trackList_1, 2); return false;">Add tracks 2, position 2</a></li>
+                <li><a href='#' onClick="player1.addTrack(trackList_1); return false;">Add tracks 2, position end</a></li>
+                
+                <!-- END METHODS RELATED TO PHYSICAL PLAYLIST -->
+                
+                <!-- METHODS RELATED TO NON-PHYSICAL PLAYLIST -->
+                
+                <!-- play audio without creating any kind of physical playlist(
+                	param1 (object or array of objects containing following properties): 
+                    	mp3 path (required),
+                    	ogg path (optional),
+                    	title (optional)
+                    param2: position to insert track(s) (number, counting starts from 0), leave out parameter for the end) --> 
+                <li><a href='#' onClick="player1.inputAudio(trackList2[0], 0); return false;">Input media number 0, position 0</a></li>
+                <li><a href='#' onClick="player1.inputAudio(trackList2[0], 1); return false;">Input media number 0, position 1</a></li>
+                <li><a href='#' onClick="player1.inputAudio(trackList2[0], 2); return false;">Input media number 0, position 2</a></li>
+                <li><a href='#' onClick="player1.inputAudio(trackList2[0]); return false;">Input media number 0, position end</a></li>
+                
+                <li><a href='#' onClick="player1.inputAudio(trackList2[1], 0); return false;">Input media number 1, position 0</a></li>
+                <li><a href='#' onClick="player1.inputAudio(trackList2[1], 1); return false;">Input media number 1, position 1</a></li>
+                <li><a href='#' onClick="player1.inputAudio(trackList2[1], 2); return false;">Input media number 1, position 2</a></li>
+                <li><a href='#' onClick="player1.inputAudio(trackList2[1]); return false;">Input media number 1, position end</a></li>
+                
+                <li><a href='#' onClick="player1.inputAudio(trackList2[2], 0); return false;">Input media number 2, position 0</a></li>
+                <li><a href='#' onClick="player1.inputAudio(trackList2[2], 1); return false;">Input media number 2, position 1</a></li>
+                <li><a href='#' onClick="player1.inputAudio(trackList2[2], 2); return false;">Input media number 2, position 2</a></li>
+                <li><a href='#' onClick="player1.inputAudio(trackList2[2]); return false;">Input media number 2, position end</a></li>
+                
+                <li><a href='#' onClick="player1.inputAudio(trackList2, 0); return false;">Input media array 1, position 0</a></li>
+                <li><a href='#' onClick="player1.inputAudio(trackList2, 1); return false;">Input media array 1, position 1</a></li>
+                <li><a href='#' onClick="player1.inputAudio(trackList2, 2); return false;">Input media array 1, position 2</a></li>
+                <li><a href='#' onClick="player1.inputAudio(trackList2); return false;">Input media array 1, position end</a></li>
+                
+                <li><a href='#' onClick="player1.inputAudio(trackList3, 0); return false;">Input media array 2, position 0</a></li>
+                <li><a href='#' onClick="player1.inputAudio(trackList3, 1); return false;">Input media array 2, position 1</a></li>
+                <li><a href='#' onClick="player1.inputAudio(trackList3, 2); return false;">Input media array 2, position 2</a></li>
+                <li><a href='#' onClick="player1.inputAudio(trackList3); return false;">Input media array 2, position end</a></li>
+                
+                <!-- END METHODS RELATED TO NON-PHYSICAL PLAYLIST -->
+                
+                <!-- remove track (pass track number, counting starts from zero, or track title as string to remove) -->
+                <li><a href='#' onClick="player1.removeTrack(0); return false;">Remove track 0</a></li>
+                <li><a href='#' onClick="player1.removeTrack(1); return false;">Remove track 1</a></li>
+                <li><a href='#' onClick="player1.removeTrack(2); return false;">Remove track 2</a></li>
+                <li><a href='#' onClick="player1.removeTrack(3); return false;">Remove track 3</a></li>
+                
+                <li><a href='#' onClick="player1.removeTrack('Tim McMorris - A Bright And Hopeful Future'); return false;">Remove track with name 1</a></li>
+                <li><a href='#' onClick="player1.removeTrack('Tim McMorris - Be My Valentine'); return false;">Remove track with name 2</a></li>
+                <li><a href='#' onClick="player1.removeTrack('Tim McMorris - Give Our Dreams Their Wings To Fly'); return false;">Remove track with name 3</a></li>
+                <li><a href='#' onClick="player1.removeTrack('Tim McMorris - Happy Days Are Here To Stay'); return false;">Remove track with name 4</a></li>
+                
+                <!-- destroy active audio -->
+                <li><a href='#' onClick="player1.destroyAudio(); return false;">Destroy active audio</a></li>
+                
+                <!-- destroy active playlist -->
+                <li><a href='#' onClick="player1.destroyPlaylist(); return false;">Destroy active playlist</a></li>
+                
+                <!-- set song title in 'player_mediaName' -->
+                <li><a href='#' onClick="player1.setTitle(titleList[0]); return false;">Set song title 1</a></li>
+                <li><a href='#' onClick="player1.setTitle(titleList[1]); return false;">Set song title 2</a></li>
+                <li><a href='#' onClick="player1.setTitle(titleList[2]); return false;">Set song title 3</a></li>
+                
+                <!-- GENERAL METHODS -->
+                
+                <!-- toggle shuffle -->
+                <li><a href='#' onClick="player1.toggleShuffle(); return false;">Toggle shuffle</a></li>
+                
+                <!-- toggle loop -->
+                <li><a href='#' onClick="player1.toggleLoop(); return false;">Toggle loop</a></li>
+                
+                <!-- set volume (0-1) -->
+                <li><a href='#' onClick="player1.setVolume(0.5); return false;">Set volume (50%)</a></li>
+                
+                <!-- OTHER METHODS -->
+                
+                <!-- reinitialize scroll (check help for more info when to use this) -->
+                <li><a href='#' onClick="player1.reinitScroll(); return false;">Reinitialize scroll</a></li>
+                
+                <!-- output playlist data in format: {id, type, title, mp3 path, ogg path} -->
+                <li><a href='#' onClick="player1.outputPlaylistData(); return false;">Output playlist data</a></li>
+            </ul>
+         </div>
+	
+	</body>
+</html>
